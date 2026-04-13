@@ -609,7 +609,6 @@ def monitor():
             print("[WARNING] Tidak ada matkul yang ditargetkan! Pastikan konfigurasi 'Target Courses' diisi.")
 
         if not run_once:
-            send_notification(f"🤖 Bot Monitoring KRS Aktif!\nMemantau: {', '.join(TARGET_COURSES)}")
 
         while True:
             try:
@@ -666,8 +665,7 @@ def monitor():
     if not semesters:
         print("[WARNING] Tidak dapat menemukan daftar semester. Menggunakan default sistem.")
     
-    if not run_once:
-        send_notification("🤖 Bot Monitoring Akademik Siakang Aktif!") 
+    
 
     while True:
         old_data = None

@@ -1,9 +1,67 @@
-__pycache__
-.github
-.venv
-.vscode
-frontend/dist
-frontend/node_modules
-server/__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environment
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Environment Variables
 .env
+.env.local
+.env.*.local
+
+# Data & Logs
 data/
+*.db
+*.sqlite3
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.pnpm-store/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig

@@ -3,12 +3,20 @@
 <br>
 
 <div align="center">
-   <img src="./assets/preview.png" alt="Preview Dashboard" style="border-radius: 12px; max-width: 80%; border: 2px solid #e5e7eb;" />
+   <img src="./assets/preview-dashboard.png" alt="Preview Dashboard Light Mode" style="border-radius: 12px; max-width: 80%; border: 1px solid #e5e7eb;" />
+   <br><br>
+   <img src="./assets/preview-dashboard-dark.png" alt="Preview Dashboard Dark Mode" style="border-radius: 12px; max-width: 80%; border: 1px solid #374151;" />
 </div>
 
 <br>
 
 Aplikasi monitoring akademik **Siakang Untirta** berbasis web yang robust dan modern. Pantau aktivitas akademik secara real-time dengan notifikasi multi-channel ke **Telegram** & **WhatsApp** melalui dashboard interaktif.
+
+## Tech Stack
+
+- **Frontend**: Vue 3 + Vite + Tailwind CSS + shadcn-vue (Radix Vue)
+- **Backend**: FastAPI + SQLite + BeautifulSoup4
+- **Notifications**: Telegram Bot API & WhatsApp (WAHA)
 
 ## Fitur Utama
 
@@ -18,7 +26,9 @@ Aplikasi monitoring akademik **Siakang Untirta** berbasis web yang robust dan mo
 
 ## Fitur Pendukung
 
-- **Web Dashboard Modern**: Antarmuka Vue.js responsif dengan Dark Mode.
+- **Responsive Design**: Sidebar layout dengan dukungan penuh untuk mobile, tablet, dan desktop.
+- **Dark Mode**: Dukungan tema gelap dengan toggle.
+- **Web Dashboard Modern**: Antarmuka Vue.js dengan komponen shadcn-vue.
 - **Multi-Channel Notification**: Mendukung **Telegram Bot** dan **WhatsApp** (via WAHA) untuk notifikasi instan.
 - **Multi-Account & Group Support**: Pantau banyak akun sekaligus. Notifikasi WA bisa dikirim ke **Grup WhatsApp**.
 - **Smart Reordering**: Atur urutan prioritas monitoring dengan drag & drop yang cerdas per kategori.
@@ -85,8 +95,8 @@ python -m uvicorn server.main:app --reload --port 8000
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 ## Panduan Penggunaan
