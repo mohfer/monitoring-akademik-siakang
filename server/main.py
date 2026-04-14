@@ -115,8 +115,8 @@ def start_task_endpoint(task_id: int):
     return ApiResponse(code=200, message=msg)
 
 @app.post("/tasks/{task_id}/stop", response_model=ApiResponse[None])
-def stop_task_endpoint(task_id: int):
-    success, msg = stop_process(task_id)
+def stop_task_endpoint(task_id: int, force: bool = False):
+    success, msg = stop_process(task_id, force=force)
     return ApiResponse(code=200, message=msg)
 
 @app.get("/tasks/{task_id}/logs", response_model=ApiResponse[str])

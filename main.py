@@ -608,8 +608,6 @@ def monitor():
         if not TARGET_COURSES:
             print("[WARNING] Tidak ada matkul yang ditargetkan! Pastikan konfigurasi 'Target Courses' diisi.")
 
-        if not run_once:
-
         while True:
             try:
                 data = get_krs_data() 
@@ -664,8 +662,6 @@ def monitor():
 
     if not semesters:
         print("[WARNING] Tidak dapat menemukan daftar semester. Menggunakan default sistem.")
-    
-    
 
     while True:
         old_data = None

@@ -103,7 +103,7 @@ def start_process(task_id: int):
     except Exception as e:
         return False, str(e)
 
-def stop_process(task_id: int):
+def stop_process(task_id: int, force: bool = False):
     proc = active_processes.get(task_id)
     
     if not proc:
@@ -112,15 +112,21 @@ def stop_process(task_id: int):
         conn.close()
         if task and task['status'] == 'running' and task['pid']:
             try:
-                os.kill(task['pid'], signal.SIGTERM)
-                subprocess.call(['taskkill', '/F', '/T', '/PID', str(task['pid'])])
+                if force:
+                    os.kill(task['pid'], signal.SIGKILL)
+                else:
+                    os.kill(task['pid'], signal.SIGTERM)
+                if os.name == 'nt':
+                    subprocess.call(['taskkill', '/F', '/T', '/PID', str(task['pid'])])
             except:
                 pass 
     else:
         if os.name == 'nt':
             subprocess.call(['taskkill', '/F', '/T', '/PID', str(proc.pid)])
+        elif force:
+            proc.kill()  # SIGKILL
         else:
-            proc.terminate()
+            proc.terminate()  # SIGTERM
         
         del active_processes[task_id]
 

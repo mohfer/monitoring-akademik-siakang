@@ -3,9 +3,10 @@
         <!-- Header -->
         <div class="flex items-start justify-between mb-2 sm:mb-3">
             <div class="flex items-center gap-2 min-w-0">
-                <Badge :variant="task.status === 'running' ? 'default' : 'secondary'" class="gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full" :class="task.status === 'running' ? 'bg-primary-foreground animate-pulse' : 'bg-muted-foreground'"></span>
-                    {{ task.status }}
+                <Badge :variant="statusVariant" class="gap-1.5">
+                    <span v-if="isLoading" class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                    <span v-else class="w-1.5 h-1.5 rounded-full" :class="task.status === 'running' ? 'bg-primary-foreground animate-pulse' : 'bg-muted-foreground'"></span>
+                    {{ isLoading ? 'pending' : task.status }}
                 </Badge>
                 <span class="text-xs font-mono text-muted-foreground truncate">{{ task.login_id }}</span>
             </div>
@@ -39,18 +40,28 @@
 
         <!-- Actions -->
         <div class="flex items-center gap-1 pt-2 sm:pt-3 border-t border-border">
-            <Button @click="toggleStatus" variant="ghost" size="sm"
+            <!-- Start/Stop Button -->
+            <Button @click="handleToggle" variant="ghost" size="sm" :disabled="isLoading"
                 :class="[
                     'flex-1 gap-1.5',
                     task.status === 'running'
                         ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
                         : 'text-green-600 dark:text-green-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950'
                 ]">
-                <Square v-if="task.status === 'running'" :size="12" class="fill-current" />
+                <Loader2 v-if="isLoading" :size="12" class="animate-spin" />
+                <Square v-else-if="task.status === 'running'" :size="12" class="fill-current" />
                 <Play v-else :size="12" class="fill-current" />
-                {{ task.status === 'running' ? 'Stop' : 'Start' }}
+                {{ isLoading ? 'Loading...' : (task.status === 'running' ? 'Stop' : 'Start') }}
             </Button>
+
+            <!-- Force Kill Button (only when running) -->
+            <Button v-if="task.status === 'running' && !isLoading" @click="forceKill" variant="ghost" size="icon"
+                class="h-8 w-8 text-destructive hover:bg-destructive/10" title="Force Kill (SIGKILL)">
+                <Zap :size="14" />
+            </Button>
+
             <div class="w-px h-5 bg-border hidden sm:block"></div>
+            
             <Button variant="ghost" size="icon" class="h-8 w-8" @click="showLogs" title="Logs">
                 <FileText :size="14" />
             </Button>
@@ -214,7 +225,7 @@ import axios from 'axios'
 import Card from './ui/Card.vue'
 import Badge from './ui/Badge.vue'
 import Button from './ui/Button.vue'
-import { Play, Square, FileText, Edit, Trash2, X, Loader2, Table, RotateCw, Copy, GripVertical } from 'lucide-vue-next'
+import { Play, Square, FileText, Edit, Trash2, X, Loader2, Table, RotateCw, Copy, GripVertical, Zap } from 'lucide-vue-next'
 
 const props = defineProps(['task'])
 const emit = defineEmits(['edit', 'delete', 'refresh', 'clone'])
@@ -222,11 +233,17 @@ const emit = defineEmits(['edit', 'delete', 'refresh', 'clone'])
 const showingLogs = ref(false)
 const showingData = ref(false)
 const isRefreshing = ref(false)
+const isLoading = ref(false)
 const logs = ref('Loading...')
 const resultData = ref(null)
 const logContainer = ref(null)
 const API_URL = '/api'
 let logInterval = null
+
+const statusVariant = computed(() => {
+    if (isLoading.value) return 'secondary'
+    return props.task.status === 'running' ? 'default' : 'secondary'
+})
 
 const formattedLogs = computed(() => {
     if (!logs.value || logs.value === 'Loading...') return logs.value
@@ -332,13 +349,32 @@ const hasDataDisplay = computed(() => {
     return resultData.value && (resultData.value.nilai || (Array.isArray(resultData.value) && resultData.value.length > 0))
 })
 
-const toggleStatus = async () => {
+const handleToggle = async () => {
+    if (isLoading.value) return
+    
+    isLoading.value = true
     try {
         const action = props.task.status === 'running' ? 'stop' : 'start'
         await axios.post(`${API_URL}/tasks/${props.task.id}/${action}`)
         emit('refresh')
     } catch (e) {
         alert('Failed: ' + (e.response?.data?.message || e.message))
+    } finally {
+        isLoading.value = false
+    }
+}
+
+const forceKill = async () => {
+    if (!confirm('Force kill this process? (SIGKILL)')) return
+    
+    isLoading.value = true
+    try {
+        await axios.post(`${API_URL}/tasks/${props.task.id}/stop?force=true`)
+        emit('refresh')
+    } catch (e) {
+        alert('Failed: ' + (e.response?.data?.message || e.message))
+    } finally {
+        isLoading.value = false
     }
 }
 
