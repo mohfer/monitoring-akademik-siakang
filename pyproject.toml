@@ -1,0 +1,25 @@
+[project]
+name = "monitoring-akademik-siakang"
+version = "0.1.0"
+description = "Monitoring Akademik Siakang Untirta"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "python-multipart",
+    "requests",
+    "beautifulsoup4",
+    "python-dotenv",
+    "colorama",
+    "playwright==1.60.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+]
+
+[tool.uv]
+package = false

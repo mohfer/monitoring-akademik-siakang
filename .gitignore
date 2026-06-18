@@ -65,3 +65,7 @@ logs/
 *.tmp
 *.bak
 *.orig
+
+# Local tooling artifacts (agents/skills)
+.agents/
+skills-lock.json

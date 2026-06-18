@@ -1,107 +1,232 @@
-"""Scraper Library untuk Siakang Untirta.
+"""Scraper Library untuk Siakang Untirta (berbasis Playwright).
 
-Library ini menyediakan class SiakangScraper untuk interaksi dengan sistem Siakang.
+Sejak Siakang dipasangi Cloudflare anti-bot challenge, request berbasis
+`requests`/`curl_cffi` tidak lagi bisa login (POST login kena JS challenge).
+Library ini menggantinya dengan browser Chromium asli (Playwright) yang
+mengeksekusi challenge JavaScript Cloudflare.
 
-Fungsi Utama:
-- Login ke sistem Siakang Untirta dengan validasi kredensial
-- Mengambil daftar semester yang tersedia dengan pagination support
+Komponen:
+- BrowserSession: pembungkus Chromium yang meniru antarmuka requests.Session
+  (`.get()`, `.post()`, `.headers`) agar perubahan di main.py minimal.
+- SiakangScraper: dipakai endpoint API `/check-semesters` untuk validasi login
+  dan mengambil daftar semester.
 
-Fitur:
-- Session Management: Mengelola cookie dan session login
-- IPv4 Enforcement: Memaksa koneksi menggunakan IPv4 untuk menghindari timeout
-- Pagination Support: Mendukung pengambilan data dari multiple pages
-
-Digunakan oleh:
-- server/main.py: Untuk validasi login dan fetch semester di API endpoint
-- main.py: Socket patch dijalankan saat import untuk memperbaiki koneksi
+Catatan headless: Cloudflare di sini menolak chrome-headless-shell (mode
+headless lama Playwright), tapi melewatkan `channel="chromium"` (new headless).
+Jadi BrowserSession selalu pakai channel chromium agar tetap jalan di server
+tanpa display.
 """
 
-import requests
-from bs4 import BeautifulSoup
+import json
 import socket
+import time
 
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
+
+# Paksa IPv4 untuk koneksi berbasis socket (mis. requests untuk notifikasi).
+# Tidak memengaruhi Chromium, hanya menjaga konektivitas requests seperti semula.
 orig_getaddrinfo = socket.getaddrinfo
 def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
     return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
 socket.getaddrinfo = getaddrinfo_ipv4
 
-class SiakangScraper:
-    def __init__(self, login_id, password):
-        self.login_id = login_id
-        self.password = password
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        })
-        self.url_login = "https://siakang.untirta.ac.id/auth/login"
-        self.url_list_semester = "https://siakang.untirta.ac.id/dashboard/list-semester"
+BASE_URL = "https://siakang.untirta.ac.id"
+URL_LOGIN = f"{BASE_URL}/auth/login"
+URL_LIST_SEMESTER = f"{BASE_URL}/dashboard/list-semester"
 
-    def login(self):
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
+# Judul halaman interstitial Cloudflare yang harus ditunggu sampai hilang.
+CF_TITLES = {"Just a moment...", "Tunggu sebentar..."}
+
+
+class Resp:
+    """Objek respons minimal yang meniru requests.Response."""
+
+    def __init__(self, text, url, status_code):
+        self.text = text
+        self.url = url
+        self.status_code = status_code
+
+    def json(self):
+        return json.loads(self.text)
+
+    @property
+    def ok(self):
+        return 200 <= self.status_code < 400
+
+
+class BrowserSession:
+    """Pembungkus Chromium (Playwright) dengan antarmuka mirip requests.Session."""
+
+    def __init__(self):
+        self.headers = {"User-Agent": USER_AGENT}
+        self._pw = None
+        self._browser = None
+        self._ctx = None
+        self.page = None
+
+    def start(self):
+        if self.page is not None:
+            return
+        self._pw = sync_playwright().start()
+        self._browser = self._pw.chromium.launch(
+            headless=True,
+            channel="chromium",  # new headless mode; lolos Cloudflare
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+            ],
+        )
+        self._ctx = self._browser.new_context(
+            user_agent=USER_AGENT,
+            viewport={"width": 1366, "height": 768},
+            locale="id-ID",
+        )
+        self._ctx.add_init_script(
+            "Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
+        )
+        self.page = self._ctx.new_page()
+
+    def _wait_cf(self, timeout=90):
+        """Tunggu sampai interstitial Cloudflare hilang. Return judul akhir."""
+        deadline = time.time() + timeout
+        title = ""
+        while time.time() < deadline:
+            try:
+                title = self.page.title()
+            except Exception:
+                title = ""
+            if title and title not in CF_TITLES:
+                return title
+            time.sleep(2)
+        return title
+
+    def get(self, url):
+        self.start()
+        response = self.page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        self._wait_cf()
+        status = response.status if response is not None else 200
+        return Resp(self.page.content(), self.page.url, status)
+
+    def post(self, url, json=None, headers=None, **kwargs):
+        """POST via fetch di dalam page (same-origin), otomatis lolos Cloudflare.
+
+        Dipakai untuk request Livewire (KRS). Membawa cookie context apa adanya.
+        """
+        self.start()
+        result = self.page.evaluate(
+            """async ({url, payload, headers}) => {
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: headers || {},
+                    body: JSON.stringify(payload),
+                    credentials: 'include',
+                });
+                const text = await r.text();
+                return {status: r.status, text};
+            }""",
+            {"url": url, "payload": json, "headers": headers or {}},
+        )
+        return Resp(result["text"], url, result["status"])
+
+    def login(self, login_id, password):
+        """Login ke Siakang. Return (success: bool, message: str)."""
         try:
-            res_page = self.session.get(self.url_login)
-            soup = BeautifulSoup(res_page.text, 'html.parser')
-            
-            csrf_token_el = soup.find('input', {'name': '_token'})
-            if not csrf_token_el:
-                return False, "CSRF token not found"
-                
-            login_data = {
-                '_token': csrf_token_el['value'],
-                'email': self.login_id,
-                'username': self.login_id,
-                'password': self.password
-            }
-            
-            response = self.session.post(self.url_login, data=login_data)
-            if response.ok:
-                if "Identitas tersebut tidak cocok dengan data kami" in response.text:
-                    return False, "Identitas Salah"
-                return True, "Success"
-            return False, f"HTTP {response.status_code}"
+            self.start()
+            self.get(URL_LOGIN)
+            if not self.page.query_selector("input[name='email']"):
+                return False, "Form login tidak ditemukan (kemungkinan diblokir Cloudflare)"
+
+            self.page.fill("input[name='email']", login_id)
+            self.page.fill("input[name='password']", password)
+            self.page.click("button[type='submit']")
+            self.page.wait_for_load_state("domcontentloaded")
+            self._wait_cf()
+
+            content = self.page.content()
+            if "Identitas tersebut tidak cocok dengan data kami" in content:
+                return False, "Identitas Salah"
+            if "/auth/login" in self.page.url:
+                return False, "Login gagal (masih di halaman login)"
+            return True, "Success"
         except Exception as e:
             return False, str(e)
 
+    def close(self):
+        for obj, method in (
+            (self._ctx, "close"),
+            (self._browser, "close"),
+            (self._pw, "stop"),
+        ):
+            try:
+                if obj is not None:
+                    getattr(obj, method)()
+            except Exception:
+                pass
+        self._ctx = self._browser = self._pw = self.page = None
+
+
+class SiakangScraper:
+    """Validasi login + ambil daftar semester. Dipakai endpoint API."""
+
+    def __init__(self, login_id, password):
+        self.login_id = login_id
+        self.password = password
+        self.session = BrowserSession()
+
+    def login(self):
+        success, msg = self.session.login(self.login_id, self.password)
+        if not success:
+            self.session.close()
+        return success, msg
+
     def get_semesters(self):
         """Mengambil semua daftar semester dengan pagination support.
-        
+
         Returns:
-            list: List of dict dengan keys 'title', 'code', dan 'url'
+            list: List of dict dengan keys 'title', 'code', dan 'url'.
         """
         semesters = []
-        current_url = self.url_list_semester
-        
-        while current_url:
-            try:
+        current_url = URL_LIST_SEMESTER
+        try:
+            while current_url:
                 res = self.session.get(current_url)
                 if res.status_code != 200:
                     break
 
-                soup = BeautifulSoup(res.text, 'html.parser')
-                
-                cards = soup.find_all('div', class_='col-12 col-md-6 col-lg-4')
+                soup = BeautifulSoup(res.text, "html.parser")
+                cards = soup.find_all("div", class_="col-12 col-md-6 col-lg-4")
                 for card in cards:
-                    title_elm = card.find('h5', class_='card-title')
-                    if not title_elm: continue
+                    title_elm = card.find("h5", class_="card-title")
+                    if not title_elm:
+                        continue
                     title = title_elm.get_text(strip=True)
-                    
-                    code_elm = card.find('p', class_='card-text')
-                    code = code_elm.get_text(strip=True).replace("Kode Semester #", "") if code_elm else ""
-                    
-                    link_elm = card.find('a', class_='btn-primary')
-                    url = link_elm['href'] if link_elm else None
-                    
-                    if title and code:
-                        semesters.append({
-                            'title': title,
-                            'code': code,
-                            'url': url
-                        })
 
-                next_link = soup.find('a', rel='next')
-                if next_link and next_link.has_attr('href'):
-                    current_url = next_link['href']
-                else:
-                    current_url = None
-            except Exception as e:
-                break
+                    code_elm = card.find("p", class_="card-text")
+                    code = (
+                        code_elm.get_text(strip=True).replace("Kode Semester #", "")
+                        if code_elm
+                        else ""
+                    )
+
+                    link_elm = card.find("a", class_="btn-primary")
+                    url = link_elm["href"] if link_elm else None
+
+                    if title and code:
+                        semesters.append({"title": title, "code": code, "url": url})
+
+                next_link = soup.find("a", rel="next")
+                current_url = (
+                    next_link["href"]
+                    if next_link and next_link.has_attr("href")
+                    else None
+                )
+        finally:
+            self.session.close()
         return semesters

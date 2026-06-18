@@ -25,7 +25,8 @@ import builtins
 from datetime import datetime
 import re
 import html
-import scraper_lib
+import atexit
+from scraper_lib import BrowserSession
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -92,10 +93,8 @@ URL_KRS = "https://siakang.untirta.ac.id/krs-mahasiswa"
 
 SELECTED_SEMESTER_URL = None
 
-session = requests.Session()
-session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-})
+session = BrowserSession()
+atexit.register(session.close)
 
 def send_telegram(message):
     """
@@ -179,32 +178,23 @@ def do_login():
     """Melakukan proses login untuk mendapatkan session cookie."""
     try:
         print("[INFO] Mencoba login ke Siakang...")
-        res_page = session.get(URL_LOGIN)
-        soup = BeautifulSoup(res_page.text, 'html.parser')
-        csrf_token = soup.find('input', {'name': '_token'})['value']
-        
-        login_data = {
-            '_token': csrf_token,
-            'email': LOGIN_ID,
-            'username': LOGIN_ID,
-            'password': PASSWORD
-        }
-        
-        response = session.post(URL_LOGIN, data=login_data)
-        if response.ok:
-            if "Identitas tersebut tidak cocok dengan data kami" in response.text:
+        success, msg = session.login(LOGIN_ID, PASSWORD)
+        if not success:
+            if msg == "Identitas Salah":
                 print("[ERROR] Login gagal: Identitas (NIM/Password) salah.")
-                return False
-                
-            print("[SUCCESS] Login berhasil.")
-            if SELECTED_SEMESTER_URL:
-                print("[INFO] Mengaktifkan kembali semester terpilih...")
-                try:
-                    session.get(SELECTED_SEMESTER_URL)
-                    print("[SUCCESS] Semester berhasil diaktifkan ulang.")
-                except Exception as e:
-                    print(f"[WARNING] Gagal mengaktifkan ulang semester: {e}")
-            return True
+            else:
+                print(f"[ERROR] Login gagal: {msg}")
+            return False
+
+        print("[SUCCESS] Login berhasil.")
+        if SELECTED_SEMESTER_URL:
+            print("[INFO] Mengaktifkan kembali semester terpilih...")
+            try:
+                session.get(SELECTED_SEMESTER_URL)
+                print("[SUCCESS] Semester berhasil diaktifkan ulang.")
+            except Exception as e:
+                print(f"[WARNING] Gagal mengaktifkan ulang semester: {e}")
+        return True
     except Exception as e:
         print(f"[ERROR] Error saat login: {e}")
     return False

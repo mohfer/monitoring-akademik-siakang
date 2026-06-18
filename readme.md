@@ -77,7 +77,7 @@ Akses dashboard di: `http://localhost:3000`
 
 ### Opsi 2: Instalasi Manual (Developer)
 
-**Prerequisites:** Python 3.10+, Node.js 18+
+**Prerequisites:** [uv](https://docs.astral.sh/uv/), Node.js 18+ (uv akan mengelola Python 3.10+ secara otomatis)
 
 **Setup Backend**
 
@@ -85,11 +85,17 @@ Salin `.env.example` ke `.env` dan konfigurasikan.
 
 ```bash
 cp .env.example .env
-python -m venv .venv
-# Activate venv (Windows: .venv\Scripts\activate | Linux: source .venv/bin/activate)
-pip install -r requirements.txt
-python -m uvicorn server.main:app --reload --port 8000
+uv sync
+uv run playwright install chromium   # browser untuk melewati Cloudflare
+uv run uvicorn server.main:app --reload --port 8000
 ```
+
+> **Catatan:** Scraper memakai Chromium (Playwright) untuk melewati proteksi
+> Cloudflare Siakang. Mode berjalan headless di server tanpa display. Setiap
+> task monitoring aktif menjalankan satu instance Chromium sendiri (~150–300MB
+> RAM), jadi pertimbangkan kapasitas server saat menjalankan banyak task.
+> Di Docker, browser sudah termasuk dalam image sehingga `playwright install`
+> tidak perlu dijalankan manual.
 
 **Setup Frontend**
 

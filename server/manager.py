@@ -282,7 +282,9 @@ def run_process_once(task_id: int):
         )
         
         try:
-            proc.wait(timeout=60)
+            # Browser launch + Cloudflare challenge bisa makan puluhan detik,
+            # terutama pada run pertama, jadi beri headroom lebih besar.
+            proc.wait(timeout=180)
             return True, "Data refreshed successfully"
         except subprocess.TimeoutExpired:
             proc.terminate()
