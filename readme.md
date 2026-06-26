@@ -10,94 +10,96 @@
 
 <br>
 
-Aplikasi monitoring akademik **Siakang Untirta** berbasis web yang robust dan modern. Pantau aktivitas akademik secara real-time dengan notifikasi multi-channel ke **Telegram** & **WhatsApp** melalui dashboard interaktif.
+A robust and modern web-based academic monitoring application for **Siakang Untirta**. Track academic activities in real-time with multi-channel notifications to **Telegram** & **WhatsApp** through an interactive dashboard.
 
 ## Tech Stack
 
 - **Frontend**: Vue 3 + Vite + Tailwind CSS + shadcn-vue (Radix Vue)
-- **Backend**: FastAPI + SQLite + BeautifulSoup4
+- **Backend**: FastAPI + SQLite + BeautifulSoup4 + Playwright
 - **Notifications**: Telegram Bot API & WhatsApp (WAHA)
 
-## Fitur Utama
+## Key Features
 
 - **Dual Monitoring Mode**:
-  - **Monitor Nilai**: Pantau nilai baru, perubahan nilai, IP, dan IPK.
-  - **Monitor KRS**: Pantau ketersediaan Matkul incaran saat masa KRS (Livewire Support).
+  - **Grade Monitor**: Track new grades, grade changes, GPA, and cumulative GPA.
+  - **KRS Monitor**: Track course availability during the KRS period (Livewire Support).
 
-## Fitur Pendukung
+## Additional Features
 
-- **Responsive Design**: Sidebar layout dengan dukungan penuh untuk mobile, tablet, dan desktop.
-- **Dark Mode**: Dukungan tema gelap dengan toggle.
-- **Web Dashboard Modern**: Antarmuka Vue.js dengan komponen shadcn-vue.
-- **Multi-Channel Notification**: Mendukung **Telegram Bot** dan **WhatsApp** (via WAHA) untuk notifikasi instan.
-- **Multi-Account & Group Support**: Pantau banyak akun sekaligus. Notifikasi WA bisa dikirim ke **Grup WhatsApp**.
-- **Smart Reordering**: Atur urutan prioritas monitoring dengan drag & drop yang cerdas per kategori.
-- **One-Click Clone**: Duplikasi konfigurasi task untuk setup cepat.
+- **Responsive Design**: Sidebar layout with full support for mobile, tablet, and desktop.
+- **Dark Mode**: Dark theme support with toggle.
+- **Modern Web Dashboard**: Vue.js interface with shadcn-vue components.
+- **Multi-Channel Notifications**: Supports **Telegram Bot** and **WhatsApp** (via WAHA) for instant notifications.
+- **Multi-Account & Group Support**: Monitor multiple accounts simultaneously. WA notifications can be sent to **WhatsApp Groups**.
+- **Smart Reordering**: Arrange monitoring priority with intelligent drag & drop per category.
+- **One-Click Clone**: Duplicate task configurations for quick setup.
 - **Visual Data Viewer**:
-  - **Nilai**: Lihat transkrip sementara, Mutu, SKS di tabel rapi.
-  - **KRS**: Indikator warna (Hijau/Merah) untuk status matkul target (Found/Missing).
-- **Full Control**: Start/Stop monitoring, lihat Live Logs, hapus Logs, dan Reset Data scraping langsung dari UI.
-- **Docker Ready**: Deployment mudah dengan isolasi environment penuh.
+  - **Grades**: View temporary transcript, quality points, credits in a clean table.
+  - **KRS**: Color indicators (Green/Red) for target course status (Found/Missing).
+- **Full Control**: Start/Stop monitoring, view Live Logs, clear Logs, and Reset scraped data directly from the UI.
+- **Docker Ready**: Easy deployment with full environment isolation.
 
-## Cara Install & Penggunaan
+## Installation & Usage
 
-### Opsi 1: Menggunakan Docker (Recommended)
+### Option 1: Using Docker (Recommended)
 
-**Clone Repository**
+**Clone the Repository**
 
 ```bash
 git clone https://github.com/mohfer/monitoring-akademik-siakang
 cd monitoring-akademik-siakang
 ```
 
-**Setup Environment Variable**
+**Set Up Environment Variables**
 
-Salin `.env.example` ke `.env`:
+Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Isi konfigurasi di dalamnya:
+Configure the following variables:
 
-- `TELEGRAM_TOKEN`: Token bot Telegram Anda (optional).
-- `WAHA_BASE_URL`: URL server WAHA (optional, untuk WhatsApp). **WAHA adalah service eksternal** yang perlu di-setup terpisah. Lihat [dokumentasi WAHA](https://waha.devlike.pro/) untuk instalasi.
-- `WAHA_SESSION`: Nama session WAHA (default: `default`).
-- `WAHA_API_KEY`: API Key WAHA jika server Anda menggunakan autentikasi.
+- `TELEGRAM_TOKEN`: Your Telegram bot token (optional).
+- `CHAT_ID`: Your Telegram chat ID for notifications.
+- `WAHA_BASE_URL`: WAHA server URL (optional, for WhatsApp). **WAHA is an external service** that needs to be set up separately. See [WAHA documentation](https://waha.devlike.pro/) for installation.
+- `WAHA_SESSION`: WAHA session name (default: `default`).
+- `WAHA_API_KEY`: WAHA API key if your server uses authentication.
+- `WHATSAPP_NUMBER`: Target WhatsApp number (e.g., `62812xxx`) for notifications.
 
-**Note**: Minimal isi salah satu dari `TELEGRAM_TOKEN` atau `WAHA_BASE_URL` untuk menerima notifikasi.
+**Note**: At least one of `TELEGRAM_TOKEN` or `WAHA_BASE_URL` must be configured to receive notifications.
 
-**Jalankan Aplikasi**
+**Run the Application**
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-Akses dashboard di: `http://localhost:3000`
+Access the dashboard at: `http://localhost:3000`
 
-### Opsi 2: Instalasi Manual (Developer)
+### Option 2: Manual Installation (Developer)
 
-**Prerequisites:** [uv](https://docs.astral.sh/uv/), Node.js 18+ (uv akan mengelola Python 3.10+ secara otomatis)
+**Prerequisites:** [uv](https://docs.astral.sh/uv/), Node.js 20+ (uv will manage Python 3.10+ automatically)
 
-**Setup Backend**
+**Backend Setup**
 
-Salin `.env.example` ke `.env` dan konfigurasikan.
+Copy `.env.example` to `.env` and configure it.
 
 ```bash
 cp .env.example .env
 uv sync
-uv run playwright install chromium   # browser untuk melewati Cloudflare
+uv run playwright install chromium   # browser to bypass Cloudflare
 uv run uvicorn server.main:app --reload --port 8000
 ```
 
-> **Catatan:** Scraper memakai Chromium (Playwright) untuk melewati proteksi
-> Cloudflare Siakang. Mode berjalan headless di server tanpa display. Setiap
-> task monitoring aktif menjalankan satu instance Chromium sendiri (~150–300MB
-> RAM), jadi pertimbangkan kapasitas server saat menjalankan banyak task.
-> Di Docker, browser sudah termasuk dalam image sehingga `playwright install`
-> tidak perlu dijalankan manual.
+> **Note:** The scraper uses Chromium (Playwright) to bypass Siakang's Cloudflare
+> protection. It runs headless on the server without a display. Each active
+> monitoring task launches its own Chromium instance (~150-300MB RAM), so
+> consider server capacity when running multiple tasks.
+> In Docker, the browser is already included in the image, so `playwright install`
+> does not need to be run manually.
 
-**Setup Frontend**
+**Frontend Setup**
 
 ```bash
 cd frontend
@@ -105,27 +107,27 @@ pnpm install
 pnpm run dev
 ```
 
-## Panduan Penggunaan
+## Usage Guide
 
-### Membuat Monitor Baru
+### Creating a New Monitor
 
-1. Klik **"+ New Task"**.
-2. Pilih Tipe: **Nilai (Grades)** atau **KRS (Plans)**.
-3. Masukkan **Login ID** (NIM) & **Password** Siakang.
-4. **Notifikasi**:
-   - Isi **Telegram Chat ID** untuk notifikasi ke Telegram Personal.
-   - Isi **WhatsApp Number** (misal: `62812xxx`) atau **Group ID** (misal: `123...@g.us`) untuk notifikasi WA.
-   - _Tips: Cek **Group ID** di [Dokumentasi WAHA](https://waha.devlike.pro/swagger/#/%F0%9F%91%A5%20Groups/GroupsController_getGroups)._
-5. **Konfigurasi Khusus**:
-   - **Mode Nilai**: Klik "Fetch" Semester dan pilih semester aktif.
-   - **Mode KRS**: Masukkan nama-nama matkul target (satu per baris) di kolom "Target Courses".
-6. Simpan & Klik **Start**.
+1. Click **"+ New Task"**.
+2. Select Type: **Grades** or **KRS (Plans)**.
+3. Enter your **Login ID** (NIM) & **Password** for Siakang.
+4. **Notifications**:
+   - Fill in **Telegram Chat ID** for personal Telegram notifications.
+   - Fill in **WhatsApp Number** (e.g., `62812xxx`) or **Group ID** (e.g., `123...@g.us`) for WA notifications.
+   - _Tip: Check your **Group ID** in the [WAHA Documentation](https://waha.devlike.pro/swagger/#/%F0%9F%91%A5%20Groups/GroupsController_getGroups)._
+5. **Configuration**:
+   - **Grades Mode**: Click "Fetch" Semesters and select the active semester.
+   - **KRS Mode**: Enter target course names (one per line) in the "Target Courses" column.
+6. Save & click **Start**.
 
-### Fitur Lain
+### Other Features
 
-- **Clear Logs**: Klik ikon tempat sampah di modal Logs untuk membersihkan log lama.
-- **Reset Data**: Klik ikon reset di modal Data untuk menghapus cache hasil scraping agar notifikasi bisa muncul lagi saat data baru masuk.
+- **Clear Logs**: Click the trash icon in the Logs modal to clear old logs.
+- **Reset Data**: Click the reset icon in the Data modal to clear scraped data cache so notifications can trigger again when new data arrives.
 
 ## Disclaimer
 
-Aplikasi ini menggunakan metode _web scraping_. Perubahan pada website Siakang Untirta dapat mempengaruhi fungsionalitas. Gunakan interval waktu yang wajar (default 300s) agar tidak membebani server kampus.
+This application uses Playwright (headless Chromium) for automated browser interaction with the Siakang Untirta website. Since Siakang is protected by Cloudflare anti-bot challenges, traditional HTTP-based scraping no longer works. Playwright executes a real browser instance to handle JavaScript challenges and scrape data. Changes to the Siakang website may affect functionality. Use reasonable monitoring intervals (default 300s) to avoid overloading the campus server.
