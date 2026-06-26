@@ -171,7 +171,7 @@ def send_notification(message):
     if TELEGRAM_TOKEN and CHAT_ID:
         send_telegram(message)
     
-    if WAHA_BASE_URL and (WHATSAPP_NUMBER or (CHAT_ID and CHAT_ID.isdigit())):
+    if WAHA_BASE_URL and WHATSAPP_NUMBER:
         send_waha(message)
 
 def do_login():
