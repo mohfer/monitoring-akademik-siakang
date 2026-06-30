@@ -69,6 +69,7 @@ Configure the following variables:
 - `APP_PIN`: 4-digit PIN to access the dashboard (default: `1234`). Change this for security.
 - `FRONTEND_PORT`: Frontend port (default: `3000`).
 - `BACKEND_PORT`: Backend port (default: `8000`).
+- `CORS_ORIGINS`: Allowed CORS origins for the API, comma-separated (default: `*`). Set specific origins (e.g. `http://localhost:3000`) to enable credentialed requests; `*` allows all but disables credentials.
 
 **Note**: At least one of `TELEGRAM_TOKEN` or `WAHA_BASE_URL` must be configured to receive notifications.
 
@@ -79,6 +80,8 @@ docker compose up -d --build
 ```
 
 Access the dashboard at: `http://localhost:3000`
+
+> **Note:** The backend container runs as a **non-root** user (UID 1000) and automatically fixes ownership of the `./data` directory on startup, so persisted logs/db/scraped-data on the host bind mount are owned by UID 1000.
 
 ### Option 2: Manual Installation (Developer)
 
@@ -108,6 +111,12 @@ uv run uvicorn server.main:app --reload --port 8000
 cd frontend
 pnpm install
 pnpm run dev
+```
+
+### Running Tests
+
+```bash
+uv run pytest        # backend API + worker unit tests (43 tests)
 ```
 
 ## Usage Guide
