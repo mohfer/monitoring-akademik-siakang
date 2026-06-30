@@ -26,10 +26,12 @@ A robust and modern web-based academic monitoring application for **Siakang Unti
 
 ## Additional Features
 
+- **PIN Authentication**: Simple 4-digit PIN to secure dashboard access.
 - **Responsive Design**: Sidebar layout with full support for mobile, tablet, and desktop.
 - **Dark Mode**: Dark theme support with toggle.
 - **Modern Web Dashboard**: Vue.js interface with shadcn-vue components.
 - **Multi-Channel Notifications**: Supports **Telegram Bot** and **WhatsApp** (via WAHA) for instant notifications.
+- **Per-Course Notifications**: Get notified individually when each course grade is released, even before all grades are out.
 - **Multi-Account & Group Support**: Monitor multiple accounts simultaneously. WA notifications can be sent to **WhatsApp Groups**.
 - **Smart Reordering**: Arrange monitoring priority with intelligent drag & drop per category.
 - **One-Click Clone**: Duplicate task configurations for quick setup.
@@ -61,11 +63,12 @@ cp .env.example .env
 Configure the following variables:
 
 - `TELEGRAM_TOKEN`: Your Telegram bot token (optional).
-- `CHAT_ID`: Your Telegram chat ID for notifications.
 - `WAHA_BASE_URL`: WAHA server URL (optional, for WhatsApp). **WAHA is an external service** that needs to be set up separately. See [WAHA documentation](https://waha.devlike.pro/) for installation.
 - `WAHA_SESSION`: WAHA session name (default: `default`).
 - `WAHA_API_KEY`: WAHA API key if your server uses authentication.
-- `WHATSAPP_NUMBER`: Target WhatsApp number (e.g., `62812xxx`) for notifications.
+- `APP_PIN`: 4-digit PIN to access the dashboard (default: `1234`). Change this for security.
+- `FRONTEND_PORT`: Frontend port (default: `3000`).
+- `BACKEND_PORT`: Backend port (default: `8000`).
 
 **Note**: At least one of `TELEGRAM_TOKEN` or `WAHA_BASE_URL` must be configured to receive notifications.
 
@@ -108,6 +111,13 @@ pnpm run dev
 ```
 
 ## Usage Guide
+
+### First Access
+
+1. Open the dashboard at `http://localhost:3000`.
+2. You will be prompted to enter a **4-digit PIN**.
+3. Enter the PIN configured in `.env` (default: `1234`).
+4. You will stay logged in until you click the **Logout** button.
 
 ### Creating a New Monitor
 

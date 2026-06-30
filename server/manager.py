@@ -1,13 +1,13 @@
-"""Process Manager untuk Worker Subprocess.
+"""Process Manager for Worker Subprocess.
 
-Module ini mengelola lifecycle worker process:
-- Start/Stop subprocess monitoring
+This module manages the worker process lifecycle:
+- Start/Stop monitoring subprocess
 - Process status monitoring
 - Log management
 - Data file cleanup
 
-Worker process dijalankan dengan environment variable injection.
-Setiap task dijalankan sebagai subprocess terpisah dari main.py.
+Worker processes are run with environment variable injection.
+Each task runs as a separate subprocess from main.py.
 """
 
 import subprocess
@@ -282,8 +282,8 @@ def run_process_once(task_id: int):
         )
         
         try:
-            # Browser launch + Cloudflare challenge bisa makan puluhan detik,
-            # terutama pada run pertama, jadi beri headroom lebih besar.
+            # Browser launch + Cloudflare challenge can take tens of seconds,
+            # especially on first run, so give larger headroom.
             proc.wait(timeout=180)
             return True, "Data refreshed successfully"
         except subprocess.TimeoutExpired:

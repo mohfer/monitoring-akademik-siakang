@@ -1,20 +1,20 @@
-"""Scraper Library untuk Siakang Untirta (berbasis Playwright).
+"""Scraper Library for Siakang Untirta (Playwright-based).
 
-Sejak Siakang dipasangi Cloudflare anti-bot challenge, request berbasis
-`requests`/`curl_cffi` tidak lagi bisa login (POST login kena JS challenge).
-Library ini menggantinya dengan browser Chromium asli (Playwright) yang
-mengeksekusi challenge JavaScript Cloudflare.
+Since Siakang was equipped with Cloudflare anti-bot challenge, request-based
+`requests`/`curl_cffi` can no longer login (POST login hits JS challenge).
+This library replaces it with a real Chromium browser (Playwright) that
+executes the Cloudflare JavaScript challenge.
 
-Komponen:
-- BrowserSession: pembungkus Chromium yang meniru antarmuka requests.Session
-  (`.get()`, `.post()`, `.headers`) agar perubahan di main.py minimal.
-- SiakangScraper: dipakai endpoint API `/check-semesters` untuk validasi login
-  dan mengambil daftar semester.
+Components:
+- BrowserSession: Chromium wrapper that mimics requests.Session interface
+  (`.get()`, `.post()`, `.headers`) to minimize changes in main.py.
+- SiakangScraper: used by API endpoint `/check-semesters` for login validation
+  and fetching semester list.
 
-Catatan headless: Cloudflare di sini menolak chrome-headless-shell (mode
-headless lama Playwright), tapi melewatkan `channel="chromium"` (new headless).
-Jadi BrowserSession selalu pakai channel chromium agar tetap jalan di server
-tanpa display.
+Headless note: Cloudflare here rejects chrome-headless-shell (old Playwright
+headless mode), but allows `channel="chromium"` (new headless).
+So BrowserSession always uses chromium channel to run on servers
+without display.
 """
 
 import json
@@ -24,8 +24,8 @@ import time
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-# Paksa IPv4 untuk koneksi berbasis socket (mis. requests untuk notifikasi).
-# Tidak memengaruhi Chromium, hanya menjaga konektivitas requests seperti semula.
+# Force IPv4 for socket-based connections (e.g. requests for notifications).
+# Does not affect Chromium, only maintains requests connectivity as before.
 orig_getaddrinfo = socket.getaddrinfo
 def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
     return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
@@ -40,12 +40,12 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
-# Judul halaman interstitial Cloudflare yang harus ditunggu sampai hilang.
+# Cloudflare interstitial page titles to wait for until they disappear.
 CF_TITLES = {"Just a moment...", "Tunggu sebentar..."}
 
 
 class Resp:
-    """Objek respons minimal yang meniru requests.Response."""
+    """Minimal response object mimicking requests.Response."""
 
     def __init__(self, text, url, status_code):
         self.text = text
@@ -61,7 +61,7 @@ class Resp:
 
 
 class BrowserSession:
-    """Pembungkus Chromium (Playwright) dengan antarmuka mirip requests.Session."""
+    """Chromium wrapper (Playwright) with requests.Session-like interface."""
 
     def __init__(self):
         self.headers = {"User-Agent": USER_AGENT}
@@ -76,7 +76,7 @@ class BrowserSession:
         self._pw = sync_playwright().start()
         self._browser = self._pw.chromium.launch(
             headless=True,
-            channel="chromium",  # new headless mode; lolos Cloudflare
+            channel="chromium",  # new headless mode; passes Cloudflare
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
@@ -94,7 +94,7 @@ class BrowserSession:
         self.page = self._ctx.new_page()
 
     def _wait_cf(self, timeout=90):
-        """Tunggu sampai interstitial Cloudflare hilang. Return judul akhir."""
+        """Wait until Cloudflare interstitial disappears. Returns final title."""
         deadline = time.time() + timeout
         title = ""
         while time.time() < deadline:
@@ -115,9 +115,9 @@ class BrowserSession:
         return Resp(self.page.content(), self.page.url, status)
 
     def post(self, url, json=None, headers=None, **kwargs):
-        """POST via fetch di dalam page (same-origin), otomatis lolos Cloudflare.
+        """POST via fetch inside page (same-origin), automatically passes Cloudflare.
 
-        Dipakai untuk request Livewire (KRS). Membawa cookie context apa adanya.
+        Used for Livewire requests (KRS). Carries cookie context as-is.
         """
         self.start()
         result = self.page.evaluate(
@@ -136,12 +136,12 @@ class BrowserSession:
         return Resp(result["text"], url, result["status"])
 
     def login(self, login_id, password):
-        """Login ke Siakang. Return (success: bool, message: str)."""
+        """Login to Siakang. Returns (success: bool, message: str)."""
         try:
             self.start()
             self.get(URL_LOGIN)
             if not self.page.query_selector("input[name='email']"):
-                return False, "Form login tidak ditemukan (kemungkinan diblokir Cloudflare)"
+                return False, "Login form not found (possibly blocked by Cloudflare)"
 
             self.page.fill("input[name='email']", login_id)
             self.page.fill("input[name='password']", password)
@@ -153,7 +153,7 @@ class BrowserSession:
             if "Identitas tersebut tidak cocok dengan data kami" in content:
                 return False, "Identitas Salah"
             if "/auth/login" in self.page.url:
-                return False, "Login gagal (masih di halaman login)"
+                return False, "Login failed (still on login page)"
             return True, "Success"
         except Exception as e:
             return False, str(e)
@@ -173,7 +173,7 @@ class BrowserSession:
 
 
 class SiakangScraper:
-    """Validasi login + ambil daftar semester. Dipakai endpoint API."""
+    """Login validation + fetch semester list. Used by API endpoint."""
 
     def __init__(self, login_id, password):
         self.login_id = login_id
@@ -187,10 +187,10 @@ class SiakangScraper:
         return success, msg
 
     def get_semesters(self):
-        """Mengambil semua daftar semester dengan pagination support.
+        """Fetch all semesters with pagination support.
 
         Returns:
-            list: List of dict dengan keys 'title', 'code', dan 'url'.
+            list: List of dicts with keys 'title', 'code', and 'url'.
         """
         semesters = []
         current_url = URL_LIST_SEMESTER

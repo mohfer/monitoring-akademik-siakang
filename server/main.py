@@ -1,15 +1,15 @@
-"""FastAPI server untuk Monitoring Akademik Siakang.
+"""FastAPI server for Siakang Academic Monitoring.
 
-API ini menyediakan endpoints untuk:
-- CRUD operations untuk task monitoring
+This API provides endpoints for:
+- CRUD operations for task monitoring
 - Start/Stop monitoring processes
-- View logs dan data hasil scraping
-- Validasi login dan fetch semester
+- View logs and scraped data
+- Login validation and semester fetching
 
-Server ini menggunakan:
-- FastAPI untuk REST API
-- SQLite untuk persistence
-- Subprocess untuk menjalankan worker process
+Server uses:
+- FastAPI for REST API
+- SQLite for persistence
+- Subprocess for running worker processes
 """
 
 from fastapi import FastAPI, HTTPException, Body
@@ -41,6 +41,16 @@ app.add_middleware(
 def on_startup():
     init_db()
     restore_running_tasks()
+
+@app.post("/verify-pin")
+def verify_pin(payload: dict = Body(...)):
+    pin = payload.get("pin")
+    app_pin = os.getenv("APP_PIN")
+    if not app_pin:
+        raise HTTPException(status_code=500, detail="PIN not configured")
+    if pin == app_pin:
+        return {"success": True}
+    raise HTTPException(status_code=401, detail="PIN incorrect")
 
 @app.get("/tasks", response_model=ApiResponse[List[dict]])
 def list_tasks():

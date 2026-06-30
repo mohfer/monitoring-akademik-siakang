@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: siakang-backend
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./data/logs:/app/data/logs
       - ./data/db:/app/data/db
@@ -20,7 +22,7 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: siakang-frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
     restart: unless-stopped
     depends_on:
       - backend

@@ -1,8 +1,8 @@
-"""Database module untuk SQLite task management.
+"""Database module for SQLite task management.
 
-Module ini menangani:
-- Inisialisasi database SQLite
-- Schema creation dan migration
+This module handles:
+- SQLite database initialization
+- Schema creation and migration
 - Connection management
 
 Database path: data/db/tasks.db

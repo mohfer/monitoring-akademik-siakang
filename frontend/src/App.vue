@@ -1,5 +1,6 @@
 <template>
-    <div class="h-screen flex bg-background text-foreground overflow-hidden">
+    <PinInput v-if="!isAuthenticated" @authenticated="onAuthenticated" />
+    <div v-else class="h-screen flex bg-background text-foreground overflow-hidden">
 
         <!-- Mobile Sidebar Overlay -->
         <div v-if="sidebarOpen" @click="sidebarOpen = false"
@@ -46,10 +47,15 @@
                 </Button>
                 <div class="flex items-center justify-between mt-3 px-1">
                     <span class="text-xs text-muted-foreground">v1.0.0</span>
-                    <Button variant="ghost" size="icon" @click="toggleDark" class="h-8 w-8">
-                        <Sun v-if="isDark" :size="16" />
-                        <Moon v-else :size="16" />
-                    </Button>
+                    <div class="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" @click="toggleDark" class="h-8 w-8">
+                            <Sun v-if="isDark" :size="16" />
+                            <Moon v-else :size="16" />
+                        </Button>
+                        <Button variant="ghost" size="icon" @click="handleLogout" class="h-8 w-8" title="Logout">
+                            <Lock :size="16" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -114,9 +120,11 @@ import axios from 'axios'
 import draggable from 'vuedraggable'
 import TaskCard from './components/TaskCard.vue'
 import TaskModal from './components/TaskModal.vue'
+import PinInput from './components/PinInput.vue'
 import Button from './components/ui/Button.vue'
-import { Moon, Sun, Plus, LayoutDashboard, LayoutGrid, GraduationCap, CreditCard, RefreshCw, Menu, X } from 'lucide-vue-next'
+import { Moon, Sun, Plus, LayoutDashboard, LayoutGrid, GraduationCap, CreditCard, RefreshCw, Menu, X, Lock } from 'lucide-vue-next'
 
+const isAuthenticated = ref(false)
 const tasks = ref([])
 const showModal = ref(false)
 const selectedTask = ref(null)
@@ -187,6 +195,16 @@ const onDragEnd = async () => {
     }
 }
 
+const handleLogout = () => {
+    localStorage.removeItem('siakang_pin_verified')
+    isAuthenticated.value = false
+}
+
+const onAuthenticated = () => {
+    isAuthenticated.value = true
+    fetchTasks()
+}
+
 const cloneTask = async (task) => {
     const newTask = {
         name: `${task.name} (Copy)`,
@@ -249,8 +267,11 @@ const deleteTask = async (id) => {
 }
 
 onMounted(() => {
-    fetchTasks()
-    setInterval(fetchTasks, 3000)
+    if (localStorage.getItem('siakang_pin_verified') === 'true') {
+        isAuthenticated.value = true
+        fetchTasks()
+        setInterval(fetchTasks, 3000)
+    }
 
     const savedTheme = localStorage.getItem('theme')
     if (savedTheme === 'dark') {

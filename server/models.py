@@ -1,11 +1,11 @@
-"""Pydantic models untuk API request/response.
+"""Pydantic models for API request/response.
 
-Defines data structures untuk:
+Defines data structures for:
 - API Response wrapper (Generic)
-- Task creation dan update payloads
+- Task creation and update payloads
 - Task response model
 
-Menggunakan Pydantic untuk automatic validation.
+Uses Pydantic for automatic validation.
 """
 
 from pydantic import BaseModel
