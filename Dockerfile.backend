@@ -2,6 +2,9 @@ FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
+# Install Playwright browsers to a shared path readable by the non-root runtime user.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 RUN pip install uv
@@ -11,11 +14,18 @@ RUN uv sync --frozen --no-dev
 
 RUN /app/.venv/bin/playwright install chromium
 
+# The scraper launches full Chromium via channel="chromium"; the old
+# headless-shell and ffmpeg are unused, so drop them to slim the image.
+RUN rm -rf /ms-playwright/chromium_headless_shell-* /ms-playwright/ffmpeg-*
+
 FROM python:3.10-slim
 
 WORKDIR /app
 
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gosu \
     libnss3 libnspr4 libatk1.0-0t64 libatk-bridge2.0-0t64 \
     libcups2t64 libdrm2 libgbm1 libxkbcommon0 libxcomposite1 \
     libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0 libcairo2 \
@@ -23,14 +33,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxshmfence1 libvulkan1 libatomic1 fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
+# Non-root user (fixed UID/GID for predictable bind-mount ownership).
+RUN groupadd -g 1000 app && useradd -g app -u 1000 -m -d /home/app app
+
+# Copy build artifacts already owned by the runtime user. Using COPY --chown
+# avoids a later recursive chown, which would duplicate ~800MB into a new layer.
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder --chown=app:app /ms-playwright /ms-playwright
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
-COPY . .
+COPY --chown=app:app . .
+
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 8000
 
+# Entrypoint starts as root only to self-heal /app/data ownership, then drops
+# to the non-root "app" user via gosu before running the CMD.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]

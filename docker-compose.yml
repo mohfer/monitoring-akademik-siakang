@@ -15,6 +15,7 @@ services:
       - .env
     environment:
       - TZ=Asia/Jakarta
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
 
   frontend:
     build:

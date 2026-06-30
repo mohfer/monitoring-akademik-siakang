@@ -4,8 +4,10 @@ WORKDIR /app
 RUN corepack enable
 RUN corepack prepare pnpm@10 --activate
 
-COPY frontend/package*.json ./
-RUN pnpm install
+# Copy manifest + lockfile first so --frozen-lockfile has the lockfile and the
+# dependency layer stays cached until they change.
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY frontend/ .
 RUN pnpm run build
