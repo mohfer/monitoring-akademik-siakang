@@ -12,35 +12,59 @@ Server uses:
 - Subprocess for running worker processes
 """
 
+import os
+from contextlib import asynccontextmanager
+from typing import List
+
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
-from .database import init_db, get_db_connection
-from .models import TaskCreate, TaskUpdate, TaskResponse, ApiResponse
-from .manager import start_process, stop_process, get_logs, restore_running_tasks, get_last_values, cleanup_task_files, run_process_once, clear_logs, clear_data, check_process_status
-from typing import List
-import sys
-import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from .database import init_db, get_db_connection
+from .models import TaskCreate, TaskUpdate, ApiResponse
+from .manager import (
+    start_process, stop_process, get_logs, restore_running_tasks,
+    get_last_values, cleanup_task_files, run_process_once, clear_logs,
+    clear_data, check_process_status,
+)
+
 try:
     from scraper_lib import SiakangScraper
-except ImportError:
-    SiakangScraper = None
+except ImportError:  # pragma: no cover - fallback when project root not on sys.path
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        from scraper_lib import SiakangScraper
+    except ImportError:
+        SiakangScraper = None
 
-app = FastAPI()
+
+# CORS origins are configurable via env. Wildcard "*" disables credentials:
+# browsers and the CORS spec forbid wildcard origin together with credentials.
+_origins_env = os.getenv("CORS_ORIGINS", "*").strip()
+if _origins_env == "*":
+    _allow_origins = ["*"]
+    _allow_credentials = False
+else:
+    _allow_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
+    _allow_credentials = True
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    restore_running_tasks()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allow_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("startup")
-def on_startup():
-    init_db()
-    restore_running_tasks()
 
 @app.post("/verify-pin")
 def verify_pin(payload: dict = Body(...)):

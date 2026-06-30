@@ -14,7 +14,6 @@ import subprocess
 import os
 import sys
 import signal
-import time
 import json
 from .database import get_db_connection
 from colorama import Fore, Style, init
@@ -197,7 +196,7 @@ def clear_logs(task_id: int):
     try:
         log_path = os.path.join(os.path.dirname(SCRIPT_PATH), "data", "logs", f"task_{task_id}.log")
         if os.path.exists(log_path):
-            with open(log_path, 'w') as f:
+            with open(log_path, 'w'):
                 pass
         return True, "Logs cleared"
     except Exception as e:

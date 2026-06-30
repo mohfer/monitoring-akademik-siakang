@@ -9,7 +9,7 @@ Uses Pydantic for automatic validation.
 """
 
 from pydantic import BaseModel
-from typing import Optional, Generic, TypeVar, List
+from typing import Optional, Generic, TypeVar
 
 DataT = TypeVar('DataT')
 

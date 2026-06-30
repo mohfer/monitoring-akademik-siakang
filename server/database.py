@@ -10,8 +10,6 @@ Database path: data/db/tasks.db
 
 import sqlite3
 import os
-from pydantic import BaseModel
-from typing import Optional, List
 
 DATA_DIR = os.path.join(os.getcwd(), 'data', 'db')
 os.makedirs(DATA_DIR, exist_ok=True)
