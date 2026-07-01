@@ -211,12 +211,9 @@ class GradeMonitor(BaseMonitor):
 
                     if changes:
                         for change in changes:
-                            if isinstance(change, dict):
-                                tg_msg = self._grade_message(change, not self.config.notify_without_grades_telegram)
-                                wa_msg = self._grade_message(change, not self.config.notify_without_grades_whatsapp)
-                                self.notifier.send_per_channel(tg_msg, wa_msg)
-                            else:
-                                self.notifier.send_per_channel(change, change)
+                            tg_msg = self._grade_message(change, not self.config.notify_without_grades_telegram)
+                            wa_msg = self._grade_message(change, not self.config.notify_without_grades_whatsapp)
+                            self.notifier.send_per_channel(tg_msg, wa_msg)
                         log(f"[SUCCESS] Detected {len(changes)} grade changes! (Check again: {next_check})")
                     else:
                         log(f"[STATUS] No changes. (Last: {time.strftime('%H:%M:%S')} | Next: {next_check})")
