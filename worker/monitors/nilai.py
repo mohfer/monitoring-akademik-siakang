@@ -211,9 +211,14 @@ class GradeMonitor(BaseMonitor):
 
                     if changes:
                         for change in changes:
-                            tg_msg = self._grade_message(change, not self.config.notify_without_grades_telegram)
-                            wa_msg = self._grade_message(change, not self.config.notify_without_grades_whatsapp)
-                            self.notifier.send_per_channel(tg_msg, wa_msg)
+                            if isinstance(change, dict):
+                                tg_msg = self._grade_message(change, not self.config.notify_without_grades_telegram)
+                                wa_msg = self._grade_message(change, not self.config.notify_without_grades_whatsapp)
+                                self.notifier.send_per_channel(tg_msg, wa_msg)
+                            else:
+                                tg_msg = change if not self.config.notify_without_grades_telegram else None
+                                wa_msg = change if not self.config.notify_without_grades_whatsapp else None
+                                self.notifier.send_per_channel(tg_msg, wa_msg)
                         log(f"[SUCCESS] Detected {len(changes)} grade changes! (Check again: {next_check})")
                     else:
                         log(f"[STATUS] No changes. (Last: {time.strftime('%H:%M:%S')} | Next: {next_check})")
@@ -235,7 +240,9 @@ class GradeMonitor(BaseMonitor):
                                         f"\U0001F4C8 *IPS:* {current_data.get('ips')} | *IPK:* {current_data.get('ipk')}\n"
                                         f"Silakan cek portal Siakang untuk detail lengkap.\n"
                                         f"[Login Siakang]({URL_TARGET})")
-                        self.notifier.send_per_channel(msg_complete, msg_complete)
+                        tg_msg = msg_complete if not self.config.notify_without_grades_telegram else None
+                        wa_msg = msg_complete if not self.config.notify_without_grades_whatsapp else None
+                        self.notifier.send_per_channel(tg_msg, wa_msg)
                         log("[SUCCESS] All grades released notification sent!")
 
                 if current_data:

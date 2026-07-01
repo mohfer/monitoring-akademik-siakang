@@ -270,7 +270,7 @@ onMounted(() => {
     if (localStorage.getItem('siakang_pin_verified') === 'true') {
         isAuthenticated.value = true
         fetchTasks()
-        setInterval(fetchTasks, 3000)
+        setInterval(fetchTasks, 30000)
     }
 
     const savedTheme = localStorage.getItem('theme')
