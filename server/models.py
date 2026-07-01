@@ -28,6 +28,8 @@ class TaskCreate(BaseModel):
     monitor_type: str = 'nilai'
     target_courses: Optional[str] = None
     whatsapp_number: Optional[str] = None
+    notify_without_grades_telegram: Optional[bool] = False
+    notify_without_grades_whatsapp: Optional[bool] = False
 
 class TaskUpdate(BaseModel):
     name: Optional[str] = None
@@ -39,6 +41,8 @@ class TaskUpdate(BaseModel):
     monitor_type: Optional[str] = None
     target_courses: Optional[str] = None
     whatsapp_number: Optional[str] = None
+    notify_without_grades_telegram: Optional[bool] = None
+    notify_without_grades_whatsapp: Optional[bool] = None
 
 class TaskResponse(BaseModel):
     id: int
@@ -50,3 +54,5 @@ class TaskResponse(BaseModel):
     pid: Optional[int]
     monitor_type: str
     target_courses: Optional[str]
+    notify_without_grades_telegram: bool = False
+    notify_without_grades_whatsapp: bool = False

@@ -82,6 +82,14 @@ class Notifier:
             if attempt < 2:
                 time.sleep(2)
 
+    def send_per_channel(self, telegram_msg=None, whatsapp_msg=None):
+        """Send different messages to each channel."""
+        c = self.config
+        if telegram_msg and c.telegram_token and c.chat_id:
+            self.telegram(telegram_msg)
+        if whatsapp_msg and c.waha_base_url and c.whatsapp_number:
+            self.waha(whatsapp_msg)
+
     def send(self, message):
         """Dispatch a message to every configured channel."""
         c = self.config

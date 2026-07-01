@@ -30,6 +30,8 @@ class DummyConfig:
         self.whatsapp_number = kw.get("whatsapp_number")
         self.monitor_type = kw.get("monitor_type", "nilai")
         self.target_courses = kw.get("target_courses", [])
+        self.notify_without_grades_telegram = kw.get("notify_without_grades_telegram", False)
+        self.notify_without_grades_whatsapp = kw.get("notify_without_grades_whatsapp", False)
 
 
 class FakeResp:
@@ -139,7 +141,10 @@ class TestGradeLoopFirstRun:
         cfg = DummyConfig()
         cfg.file_data = str(tmp_path / "last_values.json")
         cfg.interval = 1
-        notifier = types.SimpleNamespace(send=lambda msg: sent.append(msg))
+        notifier = types.SimpleNamespace(
+            send=lambda msg: sent.append(msg),
+            send_per_channel=lambda tg, wa: (sent.append(tg) if tg else None, sent.append(wa) if wa else None)
+        )
         monitor = GradeMonitor(cfg, notifier, session=object())
         monkeypatch.setattr(monitor, "fetch", lambda: self._sample())
         return monitor, cfg
@@ -149,7 +154,7 @@ class TestGradeLoopFirstRun:
         monitor, cfg = self._monitor(tmp_path, monkeypatch, sent)
         assert not os.path.exists(cfg.file_data)
         monitor.loop(run_once=True)
-        assert len(sent) == 2
+        assert len(sent) == 4  # 2 courses x 2 channels (tg + wa)
         assert any("Sistem Terdistribusi" in m for m in sent)
         assert any("Kewarganegaraan" in m for m in sent)
         assert os.path.exists(cfg.file_data)

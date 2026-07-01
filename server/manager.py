@@ -68,6 +68,8 @@ def start_process(task_id: int):
     if task['target_semester_code']:
         env["TARGET_SEMESTER_CODE"] = task['target_semester_code']
     env["INTERVAL"] = str(task['interval'])
+    env["NOTIFY_WITHOUT_GRADES_TELEGRAM"] = "1" if task['notify_without_grades_telegram'] else "0"
+    env["NOTIFY_WITHOUT_GRADES_WHATSAPP"] = "1" if task['notify_without_grades_whatsapp'] else "0"
     env["PYTHONIOENCODING"] = "utf-8"
     
     data_dir = os.path.join(os.path.dirname(SCRIPT_PATH), "data", "value")
@@ -259,6 +261,8 @@ def run_process_once(task_id: int):
     if task['target_semester_code']:
         env["TARGET_SEMESTER_CODE"] = task['target_semester_code']
     env["INTERVAL"] = "0"
+    env["NOTIFY_WITHOUT_GRADES_TELEGRAM"] = "1" if task['notify_without_grades_telegram'] else "0"
+    env["NOTIFY_WITHOUT_GRADES_WHATSAPP"] = "1" if task['notify_without_grades_whatsapp'] else "0"
     env["PYTHONIOENCODING"] = "utf-8"
     
     data_dir = os.path.join(os.path.dirname(SCRIPT_PATH), "data", "value")

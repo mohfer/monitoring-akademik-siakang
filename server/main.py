@@ -106,8 +106,8 @@ def reorder_tasks(ordered_ids: List[int] = Body(...)):
 def create_task(task: TaskCreate):
     conn = get_db_connection()
     c = conn.execute(
-        'INSERT INTO tasks (name, login_id, password, chat_id, target_semester_code, interval, monitor_type, target_courses, whatsapp_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        (task.name, task.login_id, task.password, task.chat_id, task.target_semester_code, task.interval, task.monitor_type, task.target_courses, task.whatsapp_number)
+        'INSERT INTO tasks (name, login_id, password, chat_id, target_semester_code, interval, monitor_type, target_courses, whatsapp_number, notify_without_grades_telegram, notify_without_grades_whatsapp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        (task.name, task.login_id, task.password, task.chat_id, task.target_semester_code, task.interval, task.monitor_type, task.target_courses, task.whatsapp_number, int(task.notify_without_grades_telegram), int(task.notify_without_grades_whatsapp))
     )
     task_id = c.lastrowid
     conn.commit()

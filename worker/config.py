@@ -49,6 +49,8 @@ class WorkerConfig:
 
         self.monitor_type = os.getenv("MONITOR_TYPE", "nilai")
         self.target_courses = _parse_courses(os.getenv("TARGET_COURSES"))
+        self.notify_without_grades_telegram = os.getenv("NOTIFY_WITHOUT_GRADES_TELEGRAM", "0") == "1"
+        self.notify_without_grades_whatsapp = os.getenv("NOTIFY_WITHOUT_GRADES_WHATSAPP", "0") == "1"
 
 
 config = WorkerConfig()

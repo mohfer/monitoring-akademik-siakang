@@ -81,6 +81,30 @@
                             <p class="text-xs text-muted-foreground mt-1">628... or Group ID</p>
                         </div>
                     </div>
+                    <div v-if="form.monitor_type === 'nilai'" class="mt-3 pt-3 border-t border-border">
+                        <p class="text-xs font-medium text-muted-foreground mb-2">Notification mode per channel</p>
+                        <div class="space-y-2 ml-1">
+                            <label v-if="form.chat_id" class="flex items-center gap-2.5 cursor-pointer select-none group">
+                                <div class="relative">
+                                    <input type="checkbox" v-model="form.notify_without_grades_telegram"
+                                        class="peer sr-only" />
+                                    <div class="h-5 w-9 rounded-full bg-input transition-colors peer-checked:bg-primary"></div>
+                                    <div class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-4"></div>
+                                </div>
+                                <span class="text-xs text-muted-foreground group-hover:text-foreground transition-colors">Telegram: notification only (no grade values)</span>
+                            </label>
+                            <label v-if="form.whatsapp_number" class="flex items-center gap-2.5 cursor-pointer select-none group">
+                                <div class="relative">
+                                    <input type="checkbox" v-model="form.notify_without_grades_whatsapp"
+                                        class="peer sr-only" />
+                                    <div class="h-5 w-9 rounded-full bg-input transition-colors peer-checked:bg-primary"></div>
+                                    <div class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow-sm transition-transform peer-checked:translate-x-4"></div>
+                                </div>
+                                <span class="text-xs text-muted-foreground group-hover:text-foreground transition-colors">WhatsApp: notification only (no grade values)</span>
+                            </label>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground/50 mt-2 ml-1">Toggle on to receive only a "grades are out" alert without the actual scores.</p>
+                    </div>
                     <div v-if="!form.chat_id && !form.whatsapp_number"
                         class="mt-2 flex items-start gap-1.5 text-xs text-destructive">
                         <AlertCircle :size="12" class="mt-0.5 shrink-0" />
@@ -164,7 +188,9 @@ const form = ref({
     target_semester_code: '',
     interval: 300,
     monitor_type: 'nilai',
-    target_courses_text: ''
+    target_courses_text: '',
+    notify_without_grades_telegram: false,
+    notify_without_grades_whatsapp: false
 })
 
 watch(() => props.task, (newVal) => {
@@ -184,7 +210,9 @@ watch(() => props.task, (newVal) => {
             ...newVal,
             monitor_type: newVal.monitor_type || 'nilai',
             whatsapp_number: newVal.whatsapp_number || '',
-            target_courses_text: tcText
+            target_courses_text: tcText,
+            notify_without_grades_telegram: newVal.notify_without_grades_telegram || false,
+            notify_without_grades_whatsapp: newVal.notify_without_grades_whatsapp || false
         }
     } else {
         form.value = {
@@ -196,7 +224,9 @@ watch(() => props.task, (newVal) => {
             target_semester_code: '',
             interval: 300,
             monitor_type: 'nilai',
-            target_courses_text: ''
+            target_courses_text: '',
+            notify_without_grades_telegram: false,
+    notify_without_grades_whatsapp: false
         }
     }
 }, { immediate: true })

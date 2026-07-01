@@ -138,10 +138,15 @@ class GradeMonitor(BaseMonitor):
             log(f"[ERROR] Critical error in get_data: {e}")
             return None
 
-    def _grade_message(self, cur):
-        """Build a 'grade released' notification for one course."""
-        semester_info = f"\U0001F393 *{self.selected_semester_title}*\n\n" if self.selected_semester_title else ""
-        return (f"\U0001F514 *NILAI KELUAR!*\n"
+    def _grade_message(self, cur, with_grades=True):
+        """Build a grade notification. If with_grades=False, omit scores."""
+        semester_info = f"🎓 *{self.selected_semester_title}*\n\n" if self.selected_semester_title else ""
+        if not with_grades:
+            return (f"🔔 *NILAI KELUAR!*\n"
+                    f"{semester_info}"
+                    f"\U0001F4DA *Matkul:* {cur['matkul']}\n\n"
+                    f"Cek di: [Siakang Untirta]({URL_TARGET})")
+        return (f"🔔 *NILAI KELUAR!*\n"
                 f"{semester_info}"
                 f"\U0001F4DA *Matkul:* {cur['matkul']}\n"
                 f"\U0001F4CA *Nilai:* `{cur['nilai']}`\n"
@@ -187,7 +192,7 @@ class GradeMonitor(BaseMonitor):
                     if old_courses:
                         for cur, old in zip(current_courses, old_courses):
                             if old['nilai'] != cur['nilai']:
-                                changes.append(self._grade_message(cur))
+                                changes.append(cur)
 
                         if isinstance(old_data, dict):
                             if old_data.get('ips') != current_data.get('ips') and current_data.get('ips') != "-":
@@ -197,16 +202,18 @@ class GradeMonitor(BaseMonitor):
                     else:
                         for cur in current_courses:
                             if cur['nilai'] and cur['nilai'] != "---":
-                                changes.append(self._grade_message(cur))
+                                changes.append(cur)
 
                     if old_courses and len(current_courses) > len(old_courses):
                         for cur in current_courses[len(old_courses):]:
                             if cur['nilai'] and cur['nilai'] != "---":
-                                changes.append(self._grade_message(cur))
+                                changes.append(cur)
 
                     if changes:
                         for change in changes:
-                            self.notifier.send(change)
+                            tg_msg = self._grade_message(change, not self.config.notify_without_grades_telegram)
+                            wa_msg = self._grade_message(change, not self.config.notify_without_grades_whatsapp)
+                            self.notifier.send_per_channel(tg_msg, wa_msg)
                         log(f"[SUCCESS] Detected {len(changes)} grade changes! (Check again: {next_check})")
                     else:
                         log(f"[STATUS] No changes. (Last: {time.strftime('%H:%M:%S')} | Next: {next_check})")
@@ -228,7 +235,7 @@ class GradeMonitor(BaseMonitor):
                                         f"\U0001F4C8 *IPS:* {current_data.get('ips')} | *IPK:* {current_data.get('ipk')}\n"
                                         f"Silakan cek portal Siakang untuk detail lengkap.\n"
                                         f"[Login Siakang]({URL_TARGET})")
-                        self.notifier.send(msg_complete)
+                        self.notifier.send_per_channel(msg_complete, msg_complete)
                         log("[SUCCESS] All grades released notification sent!")
 
                 if current_data:

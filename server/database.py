@@ -31,7 +31,9 @@ def init_db():
                 position INTEGER DEFAULT 0,
                 monitor_type TEXT DEFAULT 'nilai',
                 target_courses TEXT,
-                whatsapp_number TEXT)''')
+                whatsapp_number TEXT,
+                notify_without_grades_telegram INTEGER DEFAULT 0,
+                notify_without_grades_whatsapp INTEGER DEFAULT 0)''')
     upgrade_db()
     conn.commit()
     conn.close()
@@ -58,6 +60,15 @@ def upgrade_db():
     if 'whatsapp_number' not in columns:
         print("[INFO] Migrating database: Adding 'whatsapp_number' column...")
         c.execute("ALTER TABLE tasks ADD COLUMN whatsapp_number TEXT")
+
+    if 'notify_without_grades_telegram' not in columns:
+        print("[INFO] Migrating database: Adding 'notify_without_grades_telegram' column...")
+        c.execute("ALTER TABLE tasks ADD COLUMN notify_without_grades_telegram INTEGER DEFAULT 0")
+
+    if 'notify_without_grades_whatsapp' not in columns:
+        print("[INFO] Migrating database: Adding 'notify_without_grades_whatsapp' column...")
+        c.execute("ALTER TABLE tasks ADD COLUMN notify_without_grades_whatsapp INTEGER DEFAULT 0")
+        
         
     conn.commit()
     conn.close()
